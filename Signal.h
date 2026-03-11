@@ -16,7 +16,7 @@ namespace sig
     using result_type = void;
 
     template<typename U>
-    void combine(U item) {}
+    void combine([[maybe_unused]]U item) {}
 
     result_type result() {}
   };
@@ -73,16 +73,12 @@ namespace sig
     using result_type = std::optional<T>;
     using predicate_type = std::conditional_t<PType == PredicateType::Unary, std::function<bool(T)>, std::function<bool(T, T)>>;
 
-    PredicateCombiner(std::function<predicate_type> predicate): predicate(predicate) {}
+    PredicateCombiner(predicate_type predicate): predicate(std::move(predicate)) {}
 
     template<typename U>
     void combine(U item) {
       if constexpr (PType == PredicateType::Binary) {
-        if (!res.has_value()) {
-          res = item;
-        } else if (predicate(*res, item)) {
-          res = item;
-        }
+        if (!res.has_value() || predicate(*res, item)) res = item;
       } else {
         if (predicate(item)) res = item;
       }

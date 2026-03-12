@@ -6,6 +6,7 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <iostream>
 
 namespace sig
 {
@@ -48,8 +49,6 @@ namespace sig
   public:
     using result_type = std::vector<T>;
 
-    VectorCombiner() : res() {}
-
     template <typename U>
     void combine(U item)
     {
@@ -58,6 +57,8 @@ namespace sig
 
     result_type result()
     {
+      result_type return_val(res);
+      res.erase();
       return res;
     }
 
@@ -83,7 +84,7 @@ namespace sig
     template<typename U>
     void combine(U item) {
       if constexpr (PType == PredicateType::Binary) {
-        if (!res.has_value() || predicate(*res, item)) res = item;
+        if (!res.has_value() || predicate(item, *res)) res = item;
       } else {
         if (predicate(item)) res = item;
       }
@@ -91,7 +92,9 @@ namespace sig
 
     result_type result()
     {
-      return res;
+      result_type return_val(res);
+      res.reset();
+      return return_val;
     }
 
   private:

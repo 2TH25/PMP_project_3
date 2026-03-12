@@ -27,12 +27,14 @@ namespace sig
   public:
     using result_type = T;
 
-    template<typename U>
-    void combine(U item) {
+    template <typename U>
+    void combine(U item)
+    {
       res = item;
     }
 
-    result_type result() {
+    result_type result()
+    {
       return res;
     }
 
@@ -46,16 +48,19 @@ namespace sig
   public:
     using result_type = std::vector<T>;
 
-    VectorCombiner(): res() {}
+    VectorCombiner() : res() {}
 
-    template<typename U>
-    void combine(U item) {
+    template <typename U>
+    void combine(U item)
+    {
       res.emplace_back(item);
     }
 
-    result_type result() {
+    result_type result()
+    {
       return res;
     }
+
   private:
     result_type res;
   };
@@ -84,9 +89,11 @@ namespace sig
       }
     }
 
-    result_type result() {
+    result_type result()
+    {
       return res;
     }
+
   private:
     predicate_type predicate;
     result_type res;
@@ -102,14 +109,14 @@ namespace sig
   public:
     using combiner_type = Combiner;
 
-    using result_type = Combiner::result_type;
+    using result_type = typename Combiner::result_type;
 
     Signal(Combiner combiner = Combiner())
         : m_combiner(combiner) {}
 
     template <typename... CombinerArgs>
     Signal(CombinerArgs... args)
-        : m_combiner(args) {}
+        : m_combiner(args...) {}
 
     std::size_t connectSlot(std::function<Signature> callback)
     {
@@ -129,10 +136,15 @@ namespace sig
     }
 
     template <typename... Args>
-    result_type emitSignal(Args)
+    result_type emitSignal(Args... args)
     {
-      for (auto fun : m_functions)
-        m_combiner.combine(m_functions(Args));
+      if constexpr (std::is_same_v<result_type, void>)
+        for (auto &[id, fun] : m_functions)
+          fun(args...);
+      
+      else
+        for (auto &[id, fun] : m_functions)
+          m_combiner.combine(fun(args...));
 
       return m_combiner.result();
     }

@@ -31,7 +31,7 @@ namespace sig
     template <typename U>
     void combine(U item)
     {
-      res = item;
+      res = static_cast<result_type>(item);
     }
 
     result_type result()
@@ -52,14 +52,14 @@ namespace sig
     template <typename U>
     void combine(U item)
     {
-      res.emplace_back(item);
+      res.push_back(static_cast<T>(item));
     }
 
     result_type result()
     {
       result_type return_val(res);
-      res.erase();
-      return res;
+      res.clear();
+      return return_val;
     }
 
   private:
@@ -83,10 +83,11 @@ namespace sig
 
     template<typename U>
     void combine(U item) {
+      auto n_item = static_cast<T>(item);
       if constexpr (PType == PredicateType::Binary) {
-        if (!res.has_value() || predicate(item, *res)) res = item;
+        if (!res.has_value() || predicate(n_item, *res)) res = n_item;
       } else {
-        if (predicate(item)) res = item;
+        if (predicate(n_item)) res = n_item;
       }
     }
 

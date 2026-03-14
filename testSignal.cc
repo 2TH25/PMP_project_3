@@ -108,6 +108,31 @@ TEST(test, test3)
   EXPECT_EQ(res, test);
 }
 
+// TODO : ne pas oublier de demander ça
+// TEST(test, test11)
+// {
+//   sig::Signal<int(int, int, int), sig::VectorCombiner<void>> sig;
+
+//   sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
+//                   { return x; });
+
+//   sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
+//                   { return y; });
+
+//   std::size_t id = sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
+//                                    { return z; });
+
+//   auto res = sig.emitSignal(65, 66, 67);
+//   std::vector<char> test{'A', 'B', 'C'};
+//   EXPECT_EQ(res, test);
+
+//   sig.disconnectSlot(id);
+
+//   test = {'A', 'B'};
+//   res = sig.emitSignal(65, 66, 67);
+//   EXPECT_EQ(res, test);
+// }
+
 TEST(test, test4)
 {
   sig::Signal<std::vector<int>(int, int, int), sig::LastCombiner<std::vector<int>>> sig;

@@ -124,6 +124,7 @@ namespace sig
 
     Combiner m_combiner;
     std::map<std::size_t, std::function<Signature>> m_functions;
+    // TODO : demander si besoin
     using Signature_result_type = typename std::function<Signature>::result_type;
 
   public:

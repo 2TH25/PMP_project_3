@@ -10,7 +10,7 @@ void callback(int param)
 class TestCombiner
 {
 public:
-  using result_type = std::optional<int>;
+  using result_type = int;
   ;
 
   TestCombiner(int x, int y)
@@ -21,18 +21,18 @@ public:
   void combine([[maybe_unused]] U item)
   {
     auto n_item = static_cast<int>(item);
-    if (!it_is_a_res_wth_a_strange_name.has_value() || it_is_a_res_wth_a_strange_name < n_item)
+    if (it_is_a_res_wth_a_strange_name < n_item)
       it_is_a_res_wth_a_strange_name = n_item;
   }
 
   result_type result()
   {
-    it_is_a_res_wth_a_strange_name = *it_is_a_res_wth_a_strange_name * x - y;
+    it_is_a_res_wth_a_strange_name = it_is_a_res_wth_a_strange_name * x - y;
     return it_is_a_res_wth_a_strange_name;
   }
 
 private:
-  result_type it_is_a_res_wth_a_strange_name;
+  double it_is_a_res_wth_a_strange_name = 0;
   int x;
   int y;
 };
@@ -50,8 +50,8 @@ TEST(test, test7)
   std::size_t id = sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
                                    { return z; });
 
-  std::optional<int> res = sig.emitSignal(1, 2, 3);
-  EXPECT_EQ(*res, 25);
+  int res = sig.emitSignal(1, 2, 3);
+  EXPECT_EQ(res, 25);
 
   sig.disconnectSlot(id);
 
@@ -59,7 +59,7 @@ TEST(test, test7)
                   { return z + 2; });
 
   res = sig.emitSignal(1, 2, 3);
-  EXPECT_EQ(*res, 245);
+  EXPECT_EQ(res, 245);
 }
 
 TEST(test, test2)
@@ -159,6 +159,95 @@ TEST(test, test5)
   EXPECT_EQ(*res, 5);
   *test_nb = 10;
   EXPECT_EQ(*res, 10);
+  res = sig.emitSignal(test_nb);
+  EXPECT_EQ(*res, 12);
+  delete test_nb;
+}
+
+TEST(test, test8)
+{
+  sig::Signal<int(int *), sig::DiscardCombiner> sig;
+
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return *x; });
+
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return *x; });
+
+  std::size_t id = sig.connectSlot([]([[maybe_unused]] int *x)
+                                   { *x += 1; 
+                                     return *x; });
+
+  int *test_nb = new int;
+  *test_nb = 0;
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 3);
+
+  sig.disconnectSlot(id);
+
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 5);
+  delete test_nb;
+}
+
+// TODO : demander si possible
+TEST(test, test9)
+{
+  sig::Signal<int(int *), sig::LastCombiner<void>> sig;
+
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return *x; });
+
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return *x; });
+
+  std::size_t id = sig.connectSlot([]([[maybe_unused]] int *x)
+                                   { *x += 1; 
+                                     return *x; });
+
+  int *test_nb = new int;
+  *test_nb = 0;
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 3);
+
+  sig.disconnectSlot(id);
+
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 5);
+  delete test_nb;
+}
+
+// TODO : demander si possible
+TEST(test, test10)
+{
+  sig::Signal<void(int *), sig::LastCombiner<int>> sig;
+
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return; });
+
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return; });
+
+  std::size_t id = sig.connectSlot([]([[maybe_unused]] int *x)
+                                   { *x += 1; 
+                                     return; });
+
+  int *test_nb = new int;
+  *test_nb = 0;
+  int res = sig.emitSignal(test_nb);
+  res += 1;
+  EXPECT_EQ(*test_nb, 3);
+
+  sig.disconnectSlot(id);
+
+  res = sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 5);
   delete test_nb;
 }
 
@@ -189,6 +278,7 @@ TEST(test, test6)
 
   res = sig.emitSignal(test_nb);
   EXPECT_EQ(**res, 10);
+  EXPECT_EQ(*test_nb, 10);
   *test_nb = 2;
   EXPECT_EQ(**res, 2);
   delete test_nb;

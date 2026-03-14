@@ -22,6 +22,7 @@ namespace sig
     result_type result() {}
   };
 
+  // TODO : demander pour T = void
   template <typename T>
   class LastCombiner
   {
@@ -31,16 +32,30 @@ namespace sig
     template <typename U>
     void combine(U item)
     {
-      res = static_cast<result_type>(item);
+      if constexpr (std::is_same_v<result_type, void>)
+      {
+        return;
+      }
+      else
+      {
+        res = static_cast<result_type>(item);
+      }
     }
 
     result_type result()
     {
-      return res;
+      if constexpr (std::is_same_v<result_type, void>)
+      {
+        return;
+      }
+      else
+      {
+        return res;
+      }
     }
 
   private:
-    result_type res;
+    std::conditional_t<std::is_same_v<result_type, void>, int, result_type> res;
   };
 
   template <typename T>
@@ -109,6 +124,7 @@ namespace sig
 
     Combiner m_combiner;
     std::map<std::size_t, std::function<Signature>> m_functions;
+    using Signature_result_type = typename std::function<Signature>::result_type;
 
   public:
     using combiner_type = Combiner;
@@ -142,7 +158,7 @@ namespace sig
     template <typename... Args>
     result_type emitSignal(Args... args)
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_same_v<Signature_result_type, void>)
         for (auto &[id, fun] : m_functions)
           fun(args...);
       

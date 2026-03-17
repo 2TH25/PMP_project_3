@@ -16,13 +16,12 @@ namespace sig
   public:
     using result_type = void;
 
-    template<typename U>
-    void combine([[maybe_unused]]U item) {}
+    template <typename U>
+    void combine([[maybe_unused]] U item) {}
 
     result_type result() {}
   };
 
-  // TODO : demander pour T = void
   template <typename T>
   class LastCombiner
   {
@@ -62,23 +61,37 @@ namespace sig
   class VectorCombiner
   {
   public:
-    using result_type = std::vector<T>;
+    using result_type = std::conditional_t<std::is_same_v<T, void>, void, std::vector<T>>;
 
     template <typename U>
     void combine(U item)
     {
-      res.push_back(static_cast<T>(item));
+      if constexpr (std::is_same_v<result_type, void>)
+      {
+        return;
+      }
+      else
+      {
+        res.push_back(static_cast<T>(item));
+      }
     }
 
     result_type result()
     {
-      result_type return_val(res);
-      res.clear();
-      return return_val;
+      if constexpr (std::is_same_v<result_type, void>)
+      {
+        return;
+      }
+      else
+      {
+        result_type return_val(res);
+        res.clear();
+        return return_val;
+      }
     }
 
   private:
-    result_type res;
+    std::conditional_t<std::is_same_v<result_type, void>, int, result_type> res;
   };
 
   enum class PredicateType
@@ -91,31 +104,51 @@ namespace sig
   class PredicateCombiner
   {
   public:
-    using result_type = std::optional<T>;
+    using result_type = std::conditional_t<std::is_same_v<T, void>, void, std::optional<T>>;
     using predicate_type = std::conditional_t<PType == PredicateType::Unary, std::function<bool(T)>, std::function<bool(T, T)>>;
 
-    PredicateCombiner(predicate_type predicate): predicate(std::move(predicate)) {}
+    PredicateCombiner(predicate_type predicate) : predicate(std::move(predicate)) {}
 
-    template<typename U>
-    void combine(U item) {
-      auto n_item = static_cast<T>(item);
-      if constexpr (PType == PredicateType::Binary) {
-        if (!res.has_value() || predicate(n_item, *res)) res = n_item;
-      } else {
-        if (predicate(n_item)) res = n_item;
+    template <typename U>
+    void combine(U item)
+    {
+      if constexpr (std::is_same_v<result_type, void>)
+      {
+        return;
+      }
+      else
+      {
+        auto n_item = static_cast<T>(item);
+        if constexpr (PType == PredicateType::Binary)
+        {
+          if (!res.has_value() || predicate(n_item, *res))
+            res = n_item;
+        }
+        else
+        {
+          if (predicate(n_item))
+            res = n_item;
+        }
       }
     }
 
     result_type result()
     {
-      result_type return_val(res);
-      res.reset();
-      return return_val;
+      if constexpr (std::is_same_v<result_type, void>)
+      {
+        return;
+      }
+      else
+      {
+        result_type return_val(res);
+        res.reset();
+        return return_val;
+      }
     }
 
   private:
     predicate_type predicate;
-    result_type res;
+    std::conditional_t<std::is_same_v<result_type, void>, int, result_type> res;
   };
 
   template <typename Signature, typename Combiner = DiscardCombiner>
@@ -124,7 +157,7 @@ namespace sig
 
     Combiner m_combiner;
     std::map<std::size_t, std::function<Signature>> m_functions;
-    // TODO : demander si besoin
+    // TODO : voir autre métode
     using Signature_result_type = typename std::function<Signature>::result_type;
 
   public:
@@ -162,7 +195,7 @@ namespace sig
       if constexpr (std::is_same_v<Signature_result_type, void>)
         for (auto &[id, fun] : m_functions)
           fun(args...);
-      
+
       else
         for (auto &[id, fun] : m_functions)
           m_combiner.combine(fun(args...));

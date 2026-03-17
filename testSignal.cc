@@ -108,30 +108,94 @@ TEST(test, test3)
   EXPECT_EQ(res, test);
 }
 
-// TODO : ne pas oublier de demander ça
-// TEST(test, test11)
-// {
-//   sig::Signal<int(int, int, int), sig::VectorCombiner<void>> sig;
+TEST(test, test11)
+{
+  sig::Signal<int(int *), sig::VectorCombiner<void>> sig;
 
-//   sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
-//                   { return x; });
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return *x; });
 
-//   sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
-//                   { return y; });
+  sig.connectSlot([]([[maybe_unused]] int *x)
+                  { *x += 1;
+                    return *x; });
 
-//   std::size_t id = sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
-//                                    { return z; });
+  std::size_t id = sig.connectSlot([]([[maybe_unused]] int *x)
+                                   { *x += 1; 
+                                     return *x; });
 
-//   auto res = sig.emitSignal(65, 66, 67);
-//   std::vector<char> test{'A', 'B', 'C'};
-//   EXPECT_EQ(res, test);
+  int *test_nb = new int;
+  *test_nb = 0;
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 3);
 
-//   sig.disconnectSlot(id);
+  sig.disconnectSlot(id);
 
-//   test = {'A', 'B'};
-//   res = sig.emitSignal(65, 66, 67);
-//   EXPECT_EQ(res, test);
-// }
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 5);
+  delete test_nb;
+}
+
+// TODO : demander ça
+TEST(test, test13)
+{
+  sig::Signal<float *(float *), sig::PredicateCombiner<void, sig::PredicateType::Unary>> sig([](float *d1)
+                                                                                                { if (*d1 < 81) { *d1 /= 5; } 
+                                                                                                  return true; });
+
+  sig.connectSlot([]([[maybe_unused]] float *x)
+                  { *x *= 10;
+                    return x; });
+
+  sig.connectSlot([]([[maybe_unused]] float *x)
+                  { *x *= 10;
+                    return x; });
+
+  std::size_t id = sig.connectSlot([]([[maybe_unused]] float *x)
+                                   { *x *= 10;
+                                     return x; });
+
+  float *test_nb = new float;
+  *test_nb = 0.5f;
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 4.0f);
+
+  sig.disconnectSlot(id);
+
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 16);
+  delete test_nb;
+}
+
+TEST(test, test12)
+{
+  sig::Signal<float *(float *), sig::PredicateCombiner<float *, sig::PredicateType::Unary>> sig([](float *d1)
+                                                                                                { if (*d1 < 81) { *d1 /= 5; } 
+                                                                                                  return true; });
+
+  sig.connectSlot([]([[maybe_unused]] float *x)
+                  { *x *= 10;
+                    return x; });
+
+  sig.connectSlot([]([[maybe_unused]] float *x)
+                  { *x *= 10;
+                    return x; });
+
+  std::size_t id = sig.connectSlot([]([[maybe_unused]] float *x)
+                                   { *x *= 10;
+                                     return x; });
+
+  float *test_nb = new float;
+  *test_nb = 0.5f;
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 4.0f);
+
+  sig.disconnectSlot(id);
+
+  sig.emitSignal(test_nb);
+  EXPECT_EQ(*test_nb, 16);
+  delete test_nb;
+}
 
 TEST(test, test4)
 {
@@ -217,7 +281,6 @@ TEST(test, test8)
   delete test_nb;
 }
 
-// TODO : demander si possible
 TEST(test, test9)
 {
   sig::Signal<int(int *), sig::LastCombiner<void>> sig;
@@ -246,7 +309,6 @@ TEST(test, test9)
   delete test_nb;
 }
 
-// TODO : demander si possible
 TEST(test, test10)
 {
   sig::Signal<void(int *), sig::LastCombiner<int>> sig;

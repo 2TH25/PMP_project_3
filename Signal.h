@@ -17,6 +17,10 @@ namespace sig
     using IsNotVoid = std::conditional_t<std::is_void_v<result_type>, int, result_type>;
   }
 
+  /*===============================================================
+                            DiscardCombiner
+  ================================================================*/
+
   class DiscardCombiner
   {
   public:
@@ -27,6 +31,10 @@ namespace sig
 
     result_type result() {}
   };
+
+  /*===============================================================
+                            LastCombiner
+  ================================================================*/
 
   template <typename T>
   class LastCombiner
@@ -62,6 +70,10 @@ namespace sig
   private:
     details::IsNotVoid<result_type> res;
   };
+
+  /*===============================================================
+                            VectorCombiner
+  ================================================================*/
 
   template <typename T>
   class VectorCombiner
@@ -99,6 +111,10 @@ namespace sig
   private:
     details::IsNotVoid<result_type> res;
   };
+
+  /*===============================================================
+                            PredicateType
+  ================================================================*/
 
   enum class PredicateType
   {
@@ -192,6 +208,10 @@ namespace sig
     details::IsNotVoid<result_type> res;
   };
 
+  /*===============================================================
+                                Signal
+  ================================================================*/
+
   template <typename Signature, typename Combiner = DiscardCombiner>
   class Signal;
 
@@ -201,7 +221,6 @@ namespace sig
     Combiner m_combiner;
     using Signature = Signature_return(Signature_args...);
     std::map<std::size_t, std::function<Signature>> m_functions;
-    using Signature_result_type = Signature_return;
 
   public:
     using combiner_type = Combiner;
@@ -231,17 +250,22 @@ namespace sig
       m_functions.erase(id);
     }
 
-    template <typename... Args>
-    result_type emitSignal(Args... args)
+    result_type emitSignal(Signature_args... args)
     {
-      if constexpr (std::is_void_v<Signature_result_type>)
+      if constexpr (std::is_void_v<Signature_return>)
+      {
         for (auto &[id, fun] : m_functions)
+        {
           fun(args...);
-
+        }
+      }
       else
+      {
         for (auto &[id, fun] : m_functions)
+        {
           m_combiner.combine(fun(args...));
-
+        }
+      }
       return m_combiner.result();
     }
   };

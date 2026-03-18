@@ -7,13 +7,13 @@ void callback(int param)
   std::printf("Hello %i\n", param);
 }
 
-class TestCombiner
+class TestCombiner_spetial_constructor
 {
 public:
   using result_type = int;
   ;
 
-  TestCombiner(int x, int y)
+  TestCombiner_spetial_constructor(int x, int y)
       : x(x),
         y(y) {}
 
@@ -258,8 +258,6 @@ TEST(PredicateCombiner, void_type_U)
   com.combine('c');
   EXPECT_EQ(compt, 5);
 }
-
-// TODO : faire un test avec des times
 
 TEST(Signal_DiscardCombiner, normal)
 {
@@ -708,9 +706,41 @@ TEST(Signal_PredicateCombiner, void_type_B)
   delete test_nb;
 }
 
-TEST(Signal, personal_combiner)
+uint64_t nanos() // https://stackoverflow.com/questions/21856025/getting-an-accurate-execution-time-in-c-micro-seconds
 {
-  sig::Signal<int(int, int, int), TestCombiner> sig(10, 5);
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+             std::chrono::high_resolution_clock::now().time_since_epoch())
+      .count();
+}
+
+TEST(Signal_PredicateCombiner, no_disconnectSlot_but_not_same_result)
+{
+  sig::Signal<uint64_t(), sig::PredicateCombiner<uint64_t, sig::PredicateType::Binary>> sig([](uint64_t a, uint64_t b)
+                                                                                            { return a < b; });
+
+  uint64_t test_time;
+  sig.connectSlot([&test_time]()
+                  { test_time = nanos(); return test_time; });
+
+  sig.connectSlot([]()
+                  { return nanos(); });
+
+  sig.connectSlot([]()
+                  { return nanos(); });
+
+  auto res = sig.emitSignal();
+  EXPECT_EQ(test_time, *res);
+
+  uint64_t old_time = test_time;
+
+  res = sig.emitSignal();
+  EXPECT_EQ(test_time, *res);
+  EXPECT_TRUE(*res > old_time);
+}
+
+TEST(Signal, personal_combiner_spetial_constructor)
+{
+  sig::Signal<int(int, int, int), TestCombiner_spetial_constructor> sig(10, 5);
 
   sig.connectSlot([]([[maybe_unused]] int x, [[maybe_unused]] int y, [[maybe_unused]] int z)
                   { return x; });
@@ -733,10 +763,9 @@ TEST(Signal, personal_combiner)
   EXPECT_EQ(res, 245);
 }
 
-// TODO : ajouter test avec objet non copiable
-// TEST(test, test14)
+// TEST(Signal, test_with_unique_ptr)
 // {
-//   sig::Signal<std::unique_ptr<int>(std::unique_ptr<int>), sig::VectorCombiner<std::unique_ptr<int>>> sig;
+//   sig::Signal<std::unique_ptr<int>(std::unique_ptr<int>), sig::DiscardCombiner> sig;
 
 //   sig.connectSlot([]([[maybe_unused]] std::unique_ptr<int> x)
 //                   { *x += 1;
@@ -750,8 +779,7 @@ TEST(Signal, personal_combiner)
 //                                    { *x += 1;
 //                                      return x; });
 
-//   auto test_nb = std::make_unique<int>();
-//   *test_nb = 0;
+//   auto test_nb = std::make_unique<int>(0);
 //   sig.emitSignal(std::move(test_nb));
 //   EXPECT_EQ(*test_nb, 3);
 

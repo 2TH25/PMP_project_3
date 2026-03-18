@@ -11,6 +11,12 @@
 namespace sig
 {
 
+  namespace details
+  {
+    template <typename result_type>
+    using IsNotVoid = std::conditional_t<std::is_void_v<result_type>, int, result_type>;
+  }
+
   class DiscardCombiner
   {
   public:
@@ -31,7 +37,7 @@ namespace sig
     template <typename U>
     void combine(U item)
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_void_v<result_type>)
       {
         return;
       }
@@ -43,7 +49,7 @@ namespace sig
 
     result_type result()
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_void_v<result_type>)
       {
         return;
       }
@@ -54,19 +60,19 @@ namespace sig
     }
 
   private:
-    std::conditional_t<std::is_same_v<result_type, void>, int, result_type> res;
+    details::IsNotVoid<result_type> res;
   };
 
   template <typename T>
   class VectorCombiner
   {
   public:
-    using result_type = std::conditional_t<std::is_same_v<T, void>, void, std::vector<T>>;
+    using result_type = std::conditional_t<std::is_void_v<T>, void, std::vector<T>>;
 
     template <typename U>
     void combine(U item)
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_void_v<result_type>)
       {
         return;
       }
@@ -78,7 +84,7 @@ namespace sig
 
     result_type result()
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_void_v<result_type>)
       {
         return;
       }
@@ -91,7 +97,7 @@ namespace sig
     }
 
   private:
-    std::conditional_t<std::is_same_v<result_type, void>, int, result_type> res;
+    details::IsNotVoid<result_type> res;
   };
 
   enum class PredicateType
@@ -100,20 +106,53 @@ namespace sig
     Binary,
   };
 
+  namespace details
+  {
+    template<typename T, PredicateType Ptype> struct SwitchPredicateType;
+
+    template <typename T>
+    struct SwitchPredicateType<T, PredicateType::Unary>
+    {
+      using type = typename std::function<bool(T)>;
+    };
+
+    template <typename T>
+    struct SwitchPredicateType<T, PredicateType::Binary>
+    {
+      using type = typename std::function<bool(T, T)>;
+    };
+
+    template <typename T, PredicateType PType>
+    struct VoidPredicate
+    {
+      using type = typename SwitchPredicateType<T, PType>::type;
+    };
+
+    template <PredicateType PType>
+    struct VoidPredicate<void, PType>
+    {
+      using type = typename std::function<bool()>;
+    };
+
+    template <typename T, PredicateType PType>
+    using predicate_t = typename VoidPredicate<T, PType>::type;
+  }
+
   template <typename T, PredicateType PType = PredicateType::Binary>
   class PredicateCombiner
   {
   public:
-    using result_type = std::conditional_t<std::is_same_v<T, void>, void, std::optional<T>>;
-    using predicate_type = std::conditional_t<PType == PredicateType::Unary, std::function<bool(T)>, std::function<bool(T, T)>>;
+    using result_type = std::conditional_t<std::is_void_v<T>, void, std::optional<T>>;
+    using predicate_type = details::predicate_t<T, PType>;
 
     PredicateCombiner(predicate_type predicate) : predicate(std::move(predicate)) {}
 
     template <typename U>
     void combine(U item)
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_void_v<result_type>)
       {
+        predicate();
         return;
       }
       else
@@ -134,7 +173,7 @@ namespace sig
 
     result_type result()
     {
-      if constexpr (std::is_same_v<result_type, void>)
+      if constexpr (std::is_void_v<result_type>)
       {
         return;
       }
@@ -148,21 +187,22 @@ namespace sig
 
   private:
     predicate_type predicate;
-    std::conditional_t<std::is_same_v<result_type, void>, int, result_type> res;
+    details::IsNotVoid<result_type> res;
   };
 
   template <typename Signature, typename Combiner = DiscardCombiner>
-  class Signal
-  {
+  class Signal;
 
+  template <typename Signature_return, typename Combiner, typename... Signature_args>
+  class Signal<Signature_return(Signature_args...), Combiner>
+  {
     Combiner m_combiner;
+    using Signature = Signature_return(Signature_args...);
     std::map<std::size_t, std::function<Signature>> m_functions;
-    // TODO : voir autre métode
-    using Signature_result_type = typename std::function<Signature>::result_type;
+    using Signature_result_type = Signature_return;
 
   public:
     using combiner_type = Combiner;
-
     using result_type = typename Combiner::result_type;
 
     Signal(Combiner combiner = Combiner())
@@ -192,7 +232,7 @@ namespace sig
     template <typename... Args>
     result_type emitSignal(Args... args)
     {
-      if constexpr (std::is_same_v<Signature_result_type, void>)
+      if constexpr (std::is_void_v<Signature_result_type>)
         for (auto &[id, fun] : m_functions)
           fun(args...);
 

@@ -136,11 +136,13 @@ TEST(test, test11)
   delete test_nb;
 }
 
-// TODO : demander ça
+// TODO : ajouter test avec objet non copiable
+
 TEST(test, test13)
 {
-  sig::Signal<float *(float *), sig::PredicateCombiner<void, sig::PredicateType::Unary>> sig([](float *d1)
-                                                                                                { if (*d1 < 81) { *d1 /= 5; } 
+  float *test_nb = new float;
+  sig::Signal<float *(float *), sig::PredicateCombiner<void, sig::PredicateType::Unary>> sig([test_nb]()
+                                                                                                { if (*test_nb < 81) { *test_nb /= 5; } 
                                                                                                   return true; });
 
   sig.connectSlot([]([[maybe_unused]] float *x)
@@ -155,7 +157,6 @@ TEST(test, test13)
                                    { *x *= 10;
                                      return x; });
 
-  float *test_nb = new float;
   *test_nb = 0.5f;
   sig.emitSignal(test_nb);
   EXPECT_EQ(*test_nb, 4.0f);

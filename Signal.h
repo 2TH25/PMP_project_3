@@ -108,7 +108,8 @@ namespace sig
 
   namespace details
   {
-    template<typename T, PredicateType Ptype> struct SwitchPredicateType;
+    template <typename T, PredicateType Ptype>
+    struct SwitchPredicateType;
 
     template <typename T>
     struct SwitchPredicateType<T, PredicateType::Unary>
@@ -141,9 +142,10 @@ namespace sig
   template <typename T, PredicateType PType = PredicateType::Binary>
   class PredicateCombiner
   {
+    using predicate_type = details::predicate_t<T, PType>;
+
   public:
     using result_type = std::conditional_t<std::is_void_v<T>, void, std::optional<T>>;
-    using predicate_type = details::predicate_t<T, PType>;
 
     PredicateCombiner(predicate_type predicate) : predicate(std::move(predicate)) {}
 

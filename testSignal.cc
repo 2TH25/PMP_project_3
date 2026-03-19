@@ -121,7 +121,7 @@ TEST(VectorCombiner, void_type)
   com.result();
 }
 
-TEST(PredicateCombiner, nomal_B)
+TEST(PredicateCombiner, normal_B)
 {
   int compt(0);
   sig::PredicateCombiner<int> com([&compt](int a, int b) -> bool
